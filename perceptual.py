@@ -2,12 +2,12 @@ import torch
 import torch.nn as nn
 from torchvision.models import vgg19
 
-# phi_5,4 5th conv layer before maxpooling but after activation
+# conv layer before maxpooling but after activation
 
 class VGGLoss(nn.Module):
     def __init__(self):
         super().__init__()
-        self.vgg = vgg19(pretrained=True).features[:36].eval().to('cuda:2' if torch.cuda.is_available() else 'cpu')
+        self.vgg = vgg19(pretrained=True).features[:36].eval().to('cuda' if torch.cuda.is_available() else 'cpu')
         self.loss = nn.MSELoss()
 
         for param in self.vgg.parameters():
