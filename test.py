@@ -15,7 +15,7 @@ from torchmetrics.functional.image import structural_similarity_index_measure as
 def test(args, gen, test_loader):
     f = open('test_output.txt', 'w')
     test = args.test
-    device = torch.device('cuda:2' if torch.cuda.is_available() else 'cpu')
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     batch = 11
     if test:
         dataset = Data(lr_path = args.test_lr_path, hr_path = args.test_hr_path)
@@ -45,17 +45,6 @@ def test(args, gen, test_loader):
         hr = data['hr'].to(device)
 
         fake = gen(lr)
-        """
-        fig, (ax1, ax2) = plt.subplots(1,2, figsize=(12, 6))
-        ax1.imshow((np.round(((fake[0].cpu().detach().permute(1, 2, 0).numpy() + 1) * 127.5), 0)) / 255)
-        ax1.set_title('SR')
-        # plt.imshow((np.round(((fake[0].cpu().detach().permute(1, 2, 0).numpy() + 1) * 127.5), 0)) / 255)
-        plt.figure()
-        ax2.imshow((np.round(((hr[0].cpu().detach().permute(1, 2, 0).numpy() + 1) * 127.5), 0)) / 255)
-        ax2.set_title('GT')
-        # plt.imshow((np.round(((hr[0].cpu().detach().permute(1, 2, 0).numpy() + 1) * 127.5), 0)) / 255)
-        plt.savefig('figures/in_enumerate.png')
-        """
         p, m = peak_signal_noise_ratio((fake*255), ((hr+1)*127.5))
 
         peak_sco += p * lr.size(0)
@@ -67,7 +56,6 @@ def test(args, gen, test_loader):
     ssim_score.append((ssim_sco / len(test_loader)).item())
 
     qwerty = range(len(mse_score))
-    #print(len(mse_score))
     print(mse_score)
     print(psnr_score)
     print(ssim_score)
@@ -75,39 +63,14 @@ def test(args, gen, test_loader):
     f.write('mse_score: '+str(mse_score)+'\n')
     f.write('psnr_score: '+str(psnr_score)+'\n')
     f.write('ssim_score: '+str(ssim_score)+'\n')
-    """
-    plt.figure()
-    plt.plot(qwerty, mse_score, 'bo', label='mse_score')
-    plt.title('test mse scores')
-    plt.legend()
-    plt.savefig('figures/test_mse_score.png')
-
-    plt.figure()
-    plt.plot(qwerty, psnr_score, 'bo', label='psnr_score')
-    plt.title('test psnr scores')
-    plt.legend()
-    plt.savefig('figures/test_psnr_score.png')
-
-    plt.figure()
-    plt.plot(qwerty, ssim_score, 'bo', label='ssim_score')
-    plt.title('test ssim scores')
-    plt.legend()
-    plt.savefig('figures/test_ssim_score.png')
-    """
-    #print(((lr)*255).type(torch.int64))
-    #print(((lr)*255).type(torch.int64).shape)
 
     f.close()
 
     for i in range(batch):
 
         fig, (ax1, ax2) = plt.subplots(1,2)
-        #ax1.imshow(((hr.cpu()[i].permute(1,2,0))+1)*127.5)
-        # ax1.imshow(((hr+1)*127.5)[i].type(torch.int64).cpu().permute(1,2,0))
         ax1.imshow((np.round(((fake[i].cpu().detach().permute(1, 2, 0).numpy() + 1) * 127.5), 0)) / 255)
         ax1.set_title('lr')
-        # ax2.imshow(((fake.detach().cpu()[i].permute(1,2,0))*255))
-        # ax2.imshow((fake)[i].type(torch.int64).detach().cpu().permute(1,2,0))
         ax2.imshow((np.round(((hr[i].cpu().detach().permute(1, 2, 0).numpy() + 1) * 127.5), 0)) / 255)
         ax2.set_title('hr')
 
