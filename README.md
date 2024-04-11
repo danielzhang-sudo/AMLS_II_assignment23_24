@@ -32,7 +32,7 @@ PS C:\Users\dani0>
 To run the code in your local machine, first create a conda environment and install the dependecies with `conda install -f requirements.txt`. Next, create a folder called `Datasets` as shown above and put the image files in 
 there. Finally open the terminal in the project directory and execute the following:
 
-`python main.py`
+```python main.py```
 
 This will run the model in training mode with a default of 150 epochs for pretraining and 100 epochs for finetuning.
 
