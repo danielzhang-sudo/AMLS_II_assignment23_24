@@ -2,7 +2,6 @@
 
 import torch
 from torch import optim
-import tqdm as tqdm
 from matplotlib import pyplot as plt
 import numpy as np
 from data import Data
@@ -26,11 +25,9 @@ def train(args):
     path = args.path
     augmentations = args.augmentations
 
-    #def train_fn()
     n_critic = 5
-    device = torch.device('cuda:2' if torch.cuda.is_available() else 'cpu')
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(device)
-    # augmentations = 1
     aug_dataset = []
 
     # augment dataset n times
@@ -46,7 +43,7 @@ def train(args):
     print(len(full_dataset))
     train_set, temp_set = torch.utils.data.random_split(full_dataset, [int(training_size), int(validation_size+test_size)]) # [630, 135, 135]
     val_set, test_set = torch.utils.data.random_split(temp_set, [int(validation_size), int(test_size)])
-    # val_set = temp_set
+    
     train_loader = DataLoader(train_set, batch_size=30, num_workers=0)
     val_loader = DataLoader(val_set, batch_size=10, num_workers=0)
     test_loader = DataLoader(test_set, batch_size=10, num_workers=0)
@@ -58,7 +55,6 @@ def train(args):
     vgg_loss = VGGLoss()
     peak_signal_noise_ratio = PSNR()
 
-    # loop = tqdm(train_loader, leave=True)
     gen_losses = []
     disc_losses = []
     gen_val_losses = []
@@ -71,13 +67,16 @@ def train(args):
     psnr_train = []
     ssim_train = []
 
+    # Create models
     gen = Generator(in_channels=3).to(device)
     disc = Critic(in_channels=3).to(device)
 
+    # Optimizers
     opt_gen = optim.Adam(gen.parameters(), lr=1e-4, betas=(0.9, 0.999))
     opt_disc = optim.Adam(disc.parameters(), lr=1e-4, betas=(0.9, 0.999))
     scheduler = optim.lr_scheduler.StepLR(opt_gen, step_size = 30, gamma = 0.1)
-
+    
+    # Resume training
     if finetune:
         checkpoint = torch.load(path)
         scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
@@ -96,7 +95,8 @@ def train(args):
         mse_score = checkpoint['mse_score_val']
         psnr_score = checkpoint['psnr_score_val']
         ssim_score = checkpoint['ssim_score_val']
-        
+
+    # Pretraining loop
     if curr_epoch < pre_epochs:
         # Pre-train generator with L2 loss
         for epoch in range(pre_epochs-curr_epoch):
@@ -168,7 +168,8 @@ def train(args):
             mse_score.append((mse_sco / len(val_loader)).item())
             psnr_score.append((peak_sco / len(val_loader)).item())
             ssim_score.append((ssim_sco / len(val_loader)).item())
-            
+
+            # Save weights
             if epoch % 1 == 0:
                 torch.save({
                     'epoch':epoch+curr_epoch,
@@ -189,7 +190,8 @@ def train(args):
                     'ssim_score_val': ssim_score
 
                 }, f'checkpoints/{epoch+curr_epoch}_model.pt')
-                
+
+            # Write losses to file
             f.write('epoch: '+str(epoch)+'\n')
             f.write('gen_loss: '+str(gen_losses)+'\n')
             f.write('gen_val_loss: '+str(gen_val_losses)+'\n')
@@ -218,6 +220,7 @@ def train(args):
         curr_epoch = pre_epochs
         print('')
 
+    # Finetuning loop
     if curr_epoch >= pre_epochs and curr_epoch < fine_epochs+pre_epochs:
 
         # Fine-tune with perceptual and adversarial loss
@@ -240,6 +243,7 @@ def train(args):
                 lr = data['lr'].to(device)
 
                 critic_running_loss = 0
+                
                 # Train discriminator
                 for _ in range(n_critic):
                     fake = gen(lr)
@@ -259,17 +263,12 @@ def train(args):
                     opt_disc.zero_grad()
                     disc_loss.backward(retain_graph=True)
                     opt_disc.step()
-
+                    
+                    # Weight clipping
                     for p in disc.parameters():
                         p.data.clamp_(-0.01, 0.01)
 
                     critic_running_loss += disc_loss.item()
-
-                    """
-                    # Weight clipping
-                    for p in disc.parameters():
-                        p.data.clamp_(-weight_clip, weight_clip)
-                    """
 
                 # Train generator
                 fake = gen(lr)
@@ -349,7 +348,8 @@ def train(args):
             mse_score.append((mse_sco / len(val_loader)).item())
             psnr_score.append((peak_sco / len(val_loader)).item())
             ssim_score.append((ssim_sco / len(val_loader)).item())
-            
+
+            # Save weights
             if epoch % 1 == 0:
                 torch.save({
                     'epoch':epoch+curr_epoch,
@@ -370,6 +370,7 @@ def train(args):
                     'ssim_score_val': ssim_score
                 }, f'checkpoints/{epoch+curr_epoch}_model.pt')
 
+            # Print losses to file
             f.write('epoch: '+str(epoch+curr_epoch)+'\n')
             f.write('gen_loss: '+str(gen_losses)+'\n')
             f.write('gen_val_loss: '+str(gen_val_losses)+'\n')
@@ -397,21 +398,5 @@ def train(args):
             """
             scheduler.step()
     f.close()
-    """
-    for i, img in enumerate(train_loader):
-        lr = img['lr'].to(device)
-        hr = img['hr'].to(device)
-        fake = gen(lr)
-        
-        fig, (ax1, ax2) = plt.subplots(1,2, figsize=(12, 6))
-        ax1.imshow((np.round(((fake[0].cpu().detach().permute(1, 2, 0).numpy() + 1) * 127.5), 0)) / 255)
-        ax1.set_title('SR')
-        # plt.imshow((np.round(((fake[0].cpu().detach().permute(1, 2, 0).numpy() + 1) * 127.5), 0)) / 255)
-        plt.figure()
-        ax2.imshow((np.round(((hr[0].cpu().detach().permute(1, 2, 0).numpy() + 1) * 127.5), 0)) / 255)
-        ax2.set_title('GT')
-        # plt.imshow((np.round(((hr[0].cpu().detach().permute(1, 2, 0).numpy() + 1) * 127.5), 0)) / 255)
-        plt.savefig('inside_train.png')
-        break
-    """
+    # Test model
     test(args, gen, test_loader)
