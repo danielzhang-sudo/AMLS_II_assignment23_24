@@ -37,13 +37,13 @@ there. Finally open the terminal in the project directory and execute the follow
 This will run the model in training mode with a default of 150 epochs for pretraining and 100 epochs for finetuning.
 
 Some of the accepted arguments are:
-\```--augmentations (int)``` : with an integer determining the augmentation factor. Default is 3
-\```--pre_epochs (int)``` : with an integer determining the number of pretraining epochs. Default is 150
-\```--fine_epochs (int)``` : with an integer determining the number of finetuning epochs. Default is 100
-\```--finetune``` : add argment when resuming training. Default is False
-\```--path (str)``` : with the path to the last epoch
-\```--test``` : add argument when testing the model. Default is False
-\```--test_lr_path (str)``` : with path to LR test images
-\```--test_hr_path (str)``` : with path to HR test images
+- `--augmentations (int)` : with an integer determining the augmentation factor. Default is 3
+- `--pre_epochs (int)` : with an integer determining the number of pretraining epochs. Default is 150
+- `--fine_epochs (int)` : with an integer determining the number of finetuning epochs. Default is 100
+- `--finetune` : add argment when resuming training. Default is False
+- `--path (str)` : with the path to the last epoch
+- `--test` : add argument when testing the model. Default is False
+- `--test_lr_path (str)` : with path to LR test images
+- `--test_hr_path (str)` : with path to HR test images
 
 To run in testing mode, it is necessary to include the path to the saved model to load the weights, and the path to both the LR image folder and the HR resolution folder.
